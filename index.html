@@ -3,39 +3,87 @@
   <link rel="shortcut icon" type="image/png" href="./favicon.png">
 </head>
 <body style="margin: 0px; overflow: hidden">
-  <canvas id="canvas"></canvas>
+  <!-- These are slightly the wrong dimensions, but we need integer multiples for time calculation -->
+  <img id="active" src="dvdlogo-01.svg" style="width: 187px; height: 83px; position: absolute; top: 0px; left: 0px">
+  <img id="preload" src="dvdlogo-02.svg" hidden="true">
+  <p id="countdown" style="position: absolute; right: 0px; bottom: 0px"></p>
   <script>
-    const AUTO_SPEED = 8;
-    const NUM_LOGOS = 7
-    const DEBUG = false;
+    const LOGO_WIDTH = 187;
+    const LOGO_HEIGHT = 83;
+    const LOGO_1D_SPEED = 100.0 / 1000 // px / milli
+    const NUM_IMAGES = 7;
+    let image = 0;
     let prev = null;
-    let logo_num = 1;
-    let logo_cache = {};
-    function draw(time) {
-      if (prev === null) {
-        prev = time;
+    let start = null;
+    let corner_period = null;
+    let x = .0000001;
+    let y = .0000001;
+    let x_dir = 1;
+    let y_dir = 1;
+    function set_pos(el, field, pos) {
+      el.style[field] = pos + "px"
+    }
+    function switch_image() {
+      image += 1;
+      document.getElementById("active").src = "dvdlogo-0" + (1 + (image % NUM_IMAGES)) + ".svg"
+      document.getElementById("preload").src = "dvdlogo-0" + (1 + ((image + 1) % NUM_IMAGES)) + ".svg"
+    }
+    function lcm(n1, n2) {
+      let lar = Math.max(n1, n2);
+      let small = Math.min(n1, n2);
+      
+      let i = lar;
+      while(i % small !== 0){
+        i += lar;
       }
-      const c = document.getElementById("canvas");
-      c.width = window.innerWidth;
-      c.height = window.innerHeight;
-      const ctx = c.getContext("2d");
-      const WIDTH = c.width;
-      const HEIGHT = c.height;
-      ctx.clearRect(0, 0, WIDTH, HEIGHT)
-      window.requestAnimationFrame(draw);
-      prev = time;
+      return i;
     }
-    // input: h in [0,360] and s,v in [0,1] - output: r,g,b in [0,1]
-    function hsv2rgb(h,s,v) 
-    {                              
-      let f= (n,k=(n+h/60)%6) => v - v*s*Math.max( Math.min(k,4-k,1), 0);     
-      return [f(5),f(3),f(1)];       
-    }   
-
-    function startDrawing() {
-      window.requestAnimationFrame(draw);
+    function compute_corner_period() {
+      return lcm(window.innerWidth - LOGO_WIDTH, window.innerHeight - LOGO_HEIGHT) / (Math.sqrt(2 * LOGO_1D_SPEED * LOGO_1D_SPEED));
     }
-    window.addEventListener("load", startDrawing);
+    function anim(time_ms) {
+      if (prev === null) {
+        prev = time_ms
+        start = time_ms
+      }
+      let advancement = time_ms - prev
+      let scaled_speed = LOGO_1D_SPEED * advancement;
+      let logo = document.getElementById("active");
+      let switched_count = 0;
+      if (x >= window.innerWidth - LOGO_WIDTH) {
+        x_dir = -1;
+        switched_count += 1;
+      } else if (x <= 0) {
+        x_dir = 1;
+        switched_count += 1;
+      }
+      if (y >= window.innerHeight - LOGO_HEIGHT) {
+        y_dir = -1;
+        switched_count += 1;
+      } else if (y <= 0) {
+        y_dir = 1;
+        switched_count += 1;
+      }
+      if (switched_count > 0) {
+        console.log("Switched!", switched_count);
+        switch_image();
+      }
+      x += x_dir * scaled_speed;
+      x = Math.min(Math.max(x, 0), window.innerWidth - LOGO_WIDTH)
+      y += y_dir * scaled_speed;
+      y = Math.min(Math.max(y, 0), window.innerHeight - LOGO_HEIGHT)
+      set_pos(logo, "left", x)
+      set_pos(logo, "top", y)
 
+      //document.getElementById("countdown").textContent = "T-" + ((corner_period - (time_ms - start) % corner_period) / 1000).toFixed(0)
+
+      prev = time_ms
+      window.requestAnimationFrame(anim);
+    }
+    function start_anim() {
+      corner_period = compute_corner_period()
+      window.requestAnimationFrame(anim);
+    }
+    window.addEventListener("load", start_anim)
   </script>
 </body>
