@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+  <link rel="shortcut icon" type="image/png" href="./favicon.png">
+</head>
+<body style="margin: 0px; overflow: hidden">
+  <canvas id="canvas"></canvas>
+  <script>
+    const AUTO_SPEED = 8;
+    const NUM_LOGOS = 7
+    const DEBUG = false;
+    let prev = null;
+    let logo_num = 1;
+    let logo_cache = {};
+    function draw(time) {
+      if (prev === null) {
+        prev = time;
+      }
+      const c = document.getElementById("canvas");
+      c.width = window.innerWidth;
+      c.height = window.innerHeight;
+      const ctx = c.getContext("2d");
+      const WIDTH = c.width;
+      const HEIGHT = c.height;
+      ctx.clearRect(0, 0, WIDTH, HEIGHT)
+      window.requestAnimationFrame(draw);
+      prev = time;
+    }
+    // input: h in [0,360] and s,v in [0,1] - output: r,g,b in [0,1]
+    function hsv2rgb(h,s,v) 
+    {                              
+      let f= (n,k=(n+h/60)%6) => v - v*s*Math.max( Math.min(k,4-k,1), 0);     
+      return [f(5),f(3),f(1)];       
+    }   
+
+    function startDrawing() {
+      window.requestAnimationFrame(draw);
+    }
+    window.addEventListener("load", startDrawing);
+
+  </script>
+</body>
